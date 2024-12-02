@@ -1,6 +1,6 @@
 //
 //  ZestyBanner.swift
-//  visionos-test
+//  AdsSDKSwift
 //
 //  Created by Daniel Adams on 11/25/24.
 //
