@@ -10,30 +10,40 @@ import Kingfisher
 
 public struct ZestyBannerView: View {
     let adUnitId: String
+    let format: Formats
     private let defaultImageURL = "https://cdn.zesty.xyz/images/zesty/zesty-default-medium-rectangle.png"
-    private let defaultCtaURL = "https://www.zesty.xyz"
+    private let defaultCtaURL = "https://relay.zesty.xyz"
     
     @State private var imageURL: String = ""
     @State private var ctaURL: String = ""
     @State private var isLoading = false
     @State private var error: Error?
+    @State private var campaignId: String = "None"
     
-    // Initialize with just adUnitId
-    public init(adUnitId: String) {
+    public init(adUnitId: String, format: Formats) {
         self.adUnitId = adUnitId
+        self.format = format
         self._imageURL = State(initialValue: defaultImageURL)
         self._ctaURL = State(initialValue: defaultCtaURL)
     }
     
     public var body: some View {
         Link(destination: URL(string: ctaURL)!) {
-            KFImage(URL(string: imageURL))
+            KFImage.url(URL(string: imageURL))
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .overlay(
                     isLoading ? ProgressView() : nil
                 )
         }
+        .simultaneousGesture(TapGesture().onEnded {
+            Task {
+                try? await ZestyNetworkClient.shared.sendOnClickMetric(
+                    adUnitId: self.adUnitId,
+                    campaignId: self.campaignId
+                )
+            }
+        })
         .task {
             await loadAd()
         }
@@ -54,12 +64,16 @@ public struct ZestyBannerView: View {
                 self.imageURL = response.getFirstAdAssetURL() ?? defaultImageURL
                 self.ctaURL = response.getFirstAdCtaURL() ?? defaultCtaURL
                 self.isLoading = false
+                self.campaignId = response.campaignId
             }
+
+            try await ZestyNetworkClient.shared.sendOnLoadMetric(adUnitId: self.adUnitId, campaignId: self.campaignId)
         } catch {
             // Fall back to default image and CTA
+            let defaultRes = ZestyNetworkClient.shared.getDefaultResponse(format: self.format)
             await MainActor.run {
-                self.imageURL = defaultImageURL
-                self.ctaURL = defaultCtaURL
+                self.imageURL = defaultRes.getFirstAdAssetURL() ?? defaultImageURL
+                self.ctaURL = defaultRes.getFirstAdCtaURL() ?? defaultCtaURL
                 self.error = error
                 self.isLoading = false
             }
@@ -68,5 +82,5 @@ public struct ZestyBannerView: View {
 }
 
 #Preview(windowStyle: .automatic) {
-    ZestyBannerView(adUnitId: "c001c7bb-e9f8-4245-8607-e20c99ff0d08")
+    ZestyBannerView(adUnitId: "c001c7bb-e9f8-4245-8607-e20c99ff0d08", format: Formats.Billboard)
 }

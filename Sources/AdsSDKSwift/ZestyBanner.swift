@@ -9,6 +9,14 @@ import Foundation
 
 let DB_ENDPOINT = "https://api.zesty.market/api"
 let BEACON_ENDPOINT = "https://beacon2.zesty.market/zgraphql"
+let CDN_BASE = "https://cdn.zesty.xyz/sdk/assets/"
+let RELAY_URL = "https://relay.zesty.xyz"
+
+public enum Formats {
+    case MediumRectangle
+    case Billboard
+    case MobilePhoneInterstitial
+}
 
 // Network client with async/await
 public struct ZestyNetworkClient : Sendable {
@@ -45,14 +53,48 @@ public struct ZestyNetworkClient : Sendable {
         return try decoder.decode(AdResponse.self, from: data)
     }
     
-    public func sendOnLoadMetric(adUnitId: String) async throws {
+    public func getDefaultResponse(format: Formats) -> AdResponse {
+        switch format {
+        case Formats.MediumRectangle:
+            return AdResponse(ads: [Ad(assetURL: CDN_BASE + "zesty-default-medium-rectangle.png", ctaURL: RELAY_URL)], campaignId: "None")
+        case Formats.Billboard:
+            return AdResponse(ads: [Ad(assetURL: CDN_BASE + "zesty-default-billboard.png", ctaURL: RELAY_URL)], campaignId: "None")
+        case Formats.MobilePhoneInterstitial:
+            return AdResponse(ads: [Ad(assetURL: CDN_BASE + "zesty-default-mobile-phone-interstitial.png", ctaURL: RELAY_URL)], campaignId: "None")
+        }
+    }
+    
+    public func sendOnLoadMetric(adUnitId: String, campaignId: String) async throws {
         guard var url = URL(string: BEACON_ENDPOINT) else {
             throw NetworkError.invalidURL
         }
         
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(BeaconMetric(query: """
+            mutation { increment(eventType: visits, spaceId: "\(adUnitId)", campaignId: "\(campaignId)", platform: { name: visionOS, confidence: Full }) { message } }` }
+        """))
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw NetworkError.invalidResponse
+        }
+    }
+    
+    public func sendOnClickMetric(adUnitId: String, campaignId: String) async throws {
+        guard var url = URL(string: BEACON_ENDPOINT) else {
+            throw NetworkError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(BeaconMetric(query: """
+            mutation { increment(eventType: clicks, spaceId: "\(adUnitId)", campaignId: "\(campaignId)", platform: { name: visionOS, confidence: Full }) { message } }` }
+        """))
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -63,6 +105,16 @@ public struct ZestyNetworkClient : Sendable {
     }
 }
 
+public struct Ad: Codable, Sendable {
+    let assetURL: String
+    let ctaURL: String
+    
+    enum CodingKeys: String, CodingKey {
+        case assetURL = "asset_url"
+        case ctaURL = "cta_url"
+    }
+}
+
 public struct AdResponse: Codable, Sendable {
     let ads: [Ad]
     let campaignId: String
@@ -70,17 +122,6 @@ public struct AdResponse: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case ads = "Ads"
         case campaignId = "CampaignId"
-    }
-    
-    // Nested Ad struct to represent individual ad details
-    public struct Ad: Codable, Sendable {
-        let assetURL: String
-        let ctaURL: String
-        
-        enum CodingKeys: String, CodingKey {
-            case assetURL = "asset_url"
-            case ctaURL = "cta_url"
-        }
     }
     
     // Convenience method to get the first ad's asset URL or return nil
@@ -98,4 +139,8 @@ public struct AdResponse: Codable, Sendable {
 public enum NetworkError: Error {
     case invalidURL
     case invalidResponse
+}
+
+public struct BeaconMetric: Codable, Sendable {
+    let query: String
 }
