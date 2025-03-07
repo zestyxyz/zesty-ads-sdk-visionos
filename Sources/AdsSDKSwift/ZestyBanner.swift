@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import SwiftUI
+import WebKit
 
 let DB_ENDPOINT = "https://api.zesty.market/api"
 let BEACON_ENDPOINT = "https://beacon2.zesty.market/zgraphql"
@@ -143,4 +145,108 @@ public enum NetworkError: Error {
 
 public struct BeaconMetric: Codable, Sendable {
     let query: String
+}
+
+public struct WebView: UIViewRepresentable {
+    let url: URL
+
+    public func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    public func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.preferences.javaScriptEnabled = true
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        
+        // Assign stored coordinator reference as delegate
+        webView.navigationDelegate = context.coordinator
+        context.coordinator.webView = webView // Keep a reference to the WebView
+
+        let request = URLRequest(url: url)
+        webView.load(request)
+        return webView
+    }
+
+    public func updateUIView(_ webView: WKWebView, context: Context) {
+        webView.navigationDelegate = context.coordinator
+        let request = URLRequest(url: url)
+        webView.load(request)
+    }
+
+    public class Coordinator: NSObject, WKNavigationDelegate, ObservableObject {
+        weak var webView: WKWebView? // Keep reference to WebView
+        
+        
+        public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
+            guard let url = navigationAction.request.url else {
+                print("No URL, allowing")
+                decisionHandler(.allow)
+                return
+            }
+            
+            switch navigationAction.navigationType {
+            case .linkActivated:
+                // Explicit click on an anchor tag or similar, open in Safari
+                UIApplication.shared.open(url)
+                decisionHandler(.cancel)
+            case .other:
+                // Get our main document URL to filter out iframe navigations
+                guard let mainDoc = navigationAction.request.mainDocumentURL else {
+                    decisionHandler(.allow)
+                    return
+                }
+                // Anything being embedded on the prebid page should load in the webview
+                if mainDoc.absoluteString.contains("zesty") {
+                    decisionHandler(.allow)
+                } else {
+                    // This is most likely a navigation from interacting with the ad, open in Safari
+                    UIApplication.shared.open(url)
+                    decisionHandler(.cancel)
+                }
+            default:
+                decisionHandler(.allow)
+            }
+        }
+    }
+}
+
+
+struct WebViewContentView: View {
+    var format: Formats
+    var width: CGFloat
+    var height: CGFloat
+    var size: String
+    var adUnitId: String
+    
+    init(format: Formats, adUnitId: String) {
+        self.format = format
+        self.adUnitId = adUnitId
+        
+        switch format {
+        case Formats.MediumRectangle:
+            self.width = 300
+            self.height = 250
+            self.size = "medium-retangle"
+        case Formats.Billboard:
+            self.width = 970
+            self.height = 250
+            self.size = "billboard"
+        case Formats.MobilePhoneInterstitial:
+            self.width = 640
+            self.height = 1136
+            self.size = "mobile-phone-interstitial"
+        }
+    }
+    
+    var body: some View {
+        VStack {
+            VStack {
+                WebView(url: URL(string: "https://www.zesty.xyz/prebid/?size=\(self.size)&ad_unit_id=\(self.adUnitId)")!)
+            }
+            .frame(width: self.width, height: self.height)
+            .aspectRatio(contentMode: .fit)
+        }
+    }
 }

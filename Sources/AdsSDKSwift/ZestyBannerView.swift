@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Kingfisher
+import WebKit
 
 public struct ZestyBannerView: View {
     let adUnitId: String
@@ -28,24 +29,29 @@ public struct ZestyBannerView: View {
     }
     
     public var body: some View {
-        Link(destination: URL(string: ctaURL)!) {
-            KFImage.url(URL(string: imageURL))
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .overlay(
-                    isLoading ? ProgressView() : nil
-                )
-        }
-        .simultaneousGesture(TapGesture().onEnded {
-            Task {
-                try? await ZestyNetworkClient.shared.sendOnClickMetric(
-                    adUnitId: self.adUnitId,
-                    campaignId: self.campaignId
-                )
+        VStack {
+            if !self.isLoading && self.campaignId != "None" {
+                Link(destination: URL(string: ctaURL)!) {
+                    KFImage.url(URL(string: imageURL))
+                        .aspectRatio(contentMode: .fit)
+                        .overlay(
+                            isLoading ? ProgressView() : nil
+                        )
+                }
+                .simultaneousGesture(TapGesture().onEnded {
+                    Task {
+                        try? await ZestyNetworkClient.shared.sendOnClickMetric(
+                            adUnitId: self.adUnitId,
+                            campaignId: self.campaignId
+                        )
+                    }
+                })
+                .task {
+                    await loadAd()
+                }
+            } else {
+                WebViewContentView(format: self.format, adUnitId: self.adUnitId)
             }
-        })
-        .task {
-            await loadAd()
         }
     }
     
