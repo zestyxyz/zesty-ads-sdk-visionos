@@ -181,7 +181,6 @@ public struct WebView: UIViewRepresentable {
         
         public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
             guard let url = navigationAction.request.url else {
-                print("No URL, allowing")
                 decisionHandler(.allow)
                 return
             }
