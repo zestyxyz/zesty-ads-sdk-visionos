@@ -242,7 +242,7 @@ struct WebViewContentView: View {
     var body: some View {
         VStack {
             VStack {
-                WebView(url: URL(string: "https://www.zesty.xyz/prebid/?size=\(self.size)&ad_unit_id=\(self.adUnitId)")!)
+                WebView(url: URL(string: "https://www.zesty.xyz/prebid/?size=\(self.size)&ad_unit_id=\(self.adUnitId)&platform=visionos")!)
             }
             .frame(width: self.width, height: self.height)
             .aspectRatio(contentMode: .fit)
