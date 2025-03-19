@@ -28,6 +28,9 @@ public struct ZestyBannerView: View {
         self._imageURL = State(initialValue: defaultImageURL)
         self._ctaURL = State(initialValue: defaultCtaURL)
         self.uuidValid = UUID(uuidString: adUnitId) != nil
+        if !self.uuidValid {
+            print("[Warning] Ad Unit ID is not a valid UUID. Ad campaigns will not run until this is fixed.")
+        }
     }
     
     public var body: some View {
