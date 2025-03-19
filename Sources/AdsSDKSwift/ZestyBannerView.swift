@@ -14,6 +14,7 @@ public struct ZestyBannerView: View {
     let format: Formats
     private let defaultImageURL = "https://cdn.zesty.xyz/images/zesty/zesty-default-medium-rectangle.png"
     private let defaultCtaURL = "https://relay.zesty.xyz"
+    private var uuidValid: Bool = false
     
     @State private var imageURL: String = ""
     @State private var ctaURL: String = ""
@@ -26,11 +27,15 @@ public struct ZestyBannerView: View {
         self.format = format
         self._imageURL = State(initialValue: defaultImageURL)
         self._ctaURL = State(initialValue: defaultCtaURL)
+        self.uuidValid = UUID(uuidString: adUnitId) != nil
+        if !self.uuidValid {
+            print("[Warning] Ad Unit ID is not a valid UUID. Ad campaigns will not run until this is fixed.")
+        }
     }
     
     public var body: some View {
         VStack {
-            if !self.isLoading && self.campaignId != "None" {
+            if !self.uuidValid || (!self.isLoading && self.campaignId != "None") {
                 Link(destination: URL(string: ctaURL)!) {
                     KFImage.url(URL(string: imageURL))
                         .aspectRatio(contentMode: .fit)
