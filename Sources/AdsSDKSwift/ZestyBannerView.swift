@@ -12,6 +12,10 @@ import WebKit
 public struct ZestyBannerView: View {
     let adUnitId: String
     let format: Formats
+    let width: CGFloat?
+    let height: CGFloat?
+    private var baseHeight: CGFloat
+    private var baseWidth: CGFloat
     private let defaultImageURL = "https://cdn.zesty.xyz/images/zesty/zesty-default-medium-rectangle.png"
     private let defaultCtaURL = "https://relay.zesty.xyz"
     private var uuidValid: Bool = false
@@ -22,7 +26,7 @@ public struct ZestyBannerView: View {
     @State private var error: Error?
     @State private var campaignId: String = "None"
     
-    public init(adUnitId: String, format: Formats) {
+    public init(adUnitId: String, format: Formats, width: CGFloat? = nil, height: CGFloat? = nil) {
         self.adUnitId = adUnitId
         self.format = format
         self._imageURL = State(initialValue: defaultImageURL)
@@ -31,9 +35,23 @@ public struct ZestyBannerView: View {
         if !self.uuidValid {
             print("[Warning] Ad Unit ID is not a valid UUID. Ad campaigns will not run until this is fixed.")
         }
+        self.width = width
+        self.height = height
+        switch format {
+        case .MediumRectangle:
+            baseWidth = 300
+            baseHeight = 250
+        case .Billboard:
+            baseWidth = 970
+            baseHeight = 250
+        case .MobilePhoneInterstitial:
+            baseWidth = 640
+            baseHeight = 1136
+        }
     }
     
     public var body: some View {
+        let scale = calculateScale()
         VStack {
             if !self.uuidValid || (!self.isLoading && self.campaignId != "None") {
                 Link(destination: URL(string: ctaURL)!) {
@@ -58,6 +76,8 @@ public struct ZestyBannerView: View {
                 WebViewContentView(format: self.format, adUnitId: self.adUnitId)
             }
         }
+        .scaleEffect(scale)
+        .frame(width: scale.width * baseWidth, height: scale.height * baseHeight)
     }
     
     private func loadAd() async {
@@ -87,6 +107,29 @@ public struct ZestyBannerView: View {
                 self.ctaURL = defaultRes.getFirstAdCtaURL() ?? defaultCtaURL
                 self.error = error
                 self.isLoading = false
+            }
+        }
+    }
+    
+    private func calculateScale() -> CGSize {
+        let baseAspectRatio = baseWidth / baseHeight
+        
+        if width == nil && height == nil {
+            return CGSize(width: 1, height: 1)
+        } else if width == nil {
+            let calculatedWidth = height! * baseAspectRatio
+            return CGSize(width: calculatedWidth / baseWidth, height: height! / baseHeight)
+        } else if height == nil {
+            let calculatedHeight = width! / baseAspectRatio
+            return CGSize(width: width! / baseWidth, height: calculatedHeight / baseHeight)
+        } else {
+            // If both are given, use the larger value and calculate the other value from the aspect ratio
+            if width! / baseWidth > height! / baseHeight {
+                // Width is the limiting factor
+                return CGSize(width: width! / baseWidth, height: (width! / baseAspectRatio) / baseHeight)
+            } else {
+                // Height is the limiting factor
+                return CGSize(width: (height! * baseAspectRatio) / baseWidth, height: height! / baseHeight)
             }
         }
     }
