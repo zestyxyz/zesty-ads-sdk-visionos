@@ -4,12 +4,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "AdsSDKSwift",
+    name: "ZestyAdsSDK",
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "AdsSDKSwift",
-            targets: ["AdsSDKSwift"]),
+            name: "ZestyAdsSDK",
+            targets: ["ZestyAdsSDK"]),
     ],
     dependencies: [
         .package(url: "https://github.com/onevcat/Kingfisher.git", from: "8.1.1")
@@ -18,13 +18,13 @@ let package = Package(
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "AdsSDKSwift",
+            name: "ZestyAdsSDK",
             dependencies: [
                 .product(name: "Kingfisher", package: "Kingfisher"),
             ]),
         .testTarget(
-            name: "AdsSDKSwift-tests",
-            dependencies: ["AdsSDKSwift"]
+            name: "ZestyAdsSDK-tests",
+            dependencies: ["ZestyAdsSDK"]
         ),
     ]
 )
