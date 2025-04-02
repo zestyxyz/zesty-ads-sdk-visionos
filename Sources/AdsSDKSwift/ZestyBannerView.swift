@@ -12,8 +12,8 @@ import WebKit
 public struct ZestyBannerView: View {
     let adUnitId: String
     let format: Formats
-    let width: CGFloat?
-    let height: CGFloat?
+    var width: CGFloat?
+    var height: CGFloat?
     private var baseHeight: CGFloat
     private var baseWidth: CGFloat
     private let defaultImageURL = "https://cdn.zesty.xyz/images/zesty/zesty-default-medium-rectangle.png"
@@ -27,16 +27,9 @@ public struct ZestyBannerView: View {
     @State private var campaignId: String = "None"
     
     public init(adUnitId: String, format: Formats, width: CGFloat? = nil, height: CGFloat? = nil) {
+        // Initialization 
         self.adUnitId = adUnitId
         self.format = format
-        self._imageURL = State(initialValue: defaultImageURL)
-        self._ctaURL = State(initialValue: defaultCtaURL)
-        self.uuidValid = UUID(uuidString: adUnitId) != nil
-        if !self.uuidValid {
-            print("[Warning] Ad Unit ID is not a valid UUID. Ad campaigns will not run until this is fixed.")
-        }
-        self.width = width
-        self.height = height
         switch format {
         case .MediumRectangle:
             baseWidth = 300
@@ -47,6 +40,24 @@ public struct ZestyBannerView: View {
         case .MobilePhoneInterstitial:
             baseWidth = 640
             baseHeight = 1136
+        }
+        self.width = width
+        self.height = height
+        self._imageURL = State(initialValue: defaultImageURL)
+        self._ctaURL = State(initialValue: defaultCtaURL)
+        self.uuidValid = UUID(uuidString: adUnitId) != nil
+        
+        // Validation
+        if !self.uuidValid {
+            print("[Warning] Ad Unit ID is not a valid UUID. Ad campaigns will not run until this is fixed.")
+        }
+        if width != nil && width! <= 0 {
+            self.width = nil
+            print("[Warning] Width must be a positive number! Value will be treated as nil.")
+        }
+        if height != nil && height! <= 0 {
+            self.height = nil
+            print("[Warning] Height must be a positive number! Value will be treated as nil.")
         }
     }
     
