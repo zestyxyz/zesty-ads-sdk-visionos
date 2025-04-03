@@ -1,4 +1,4 @@
-# AdsSDKSwift
+# Zesty VisionOS Ads SDK
 
 This package allows developers to integrate their native visionOS (or any other platform in the Apple ecosystem) app into the Zesty Network.
 
