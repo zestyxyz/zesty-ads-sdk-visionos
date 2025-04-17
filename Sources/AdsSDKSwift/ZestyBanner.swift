@@ -18,6 +18,7 @@ public enum Formats {
     case MediumRectangle
     case Billboard
     case MobilePhoneInterstitial
+    case Video
 }
 
 // Network client with async/await
@@ -63,6 +64,8 @@ public struct ZestyNetworkClient : Sendable {
             return AdResponse(ads: [Ad(assetURL: CDN_BASE + "zesty-default-billboard.png", ctaURL: RELAY_URL)], campaignId: "None")
         case Formats.MobilePhoneInterstitial:
             return AdResponse(ads: [Ad(assetURL: CDN_BASE + "zesty-default-mobile-phone-interstitial.png", ctaURL: RELAY_URL)], campaignId: "None")
+        case Formats.Video:
+            return AdResponse(ads: [Ad(assetURL: CDN_BASE + "zesty-default-medium-rectangle.png", ctaURL: RELAY_URL)], campaignId: "None")
         }
     }
     
@@ -236,6 +239,10 @@ struct WebViewContentView: View {
             self.width = 640
             self.height = 1136
             self.size = "mobile-phone-interstitial"
+        case Formats.Video:
+            self.width = 1920
+            self.height = 1080
+            self.size = "video"
         }
     }
     
