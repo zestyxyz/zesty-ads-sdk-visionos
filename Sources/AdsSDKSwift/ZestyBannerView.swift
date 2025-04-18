@@ -40,6 +40,9 @@ public struct ZestyBannerView: View {
         case .MobilePhoneInterstitial:
             baseWidth = 640
             baseHeight = 1136
+        case .Video:
+            baseWidth = 1920
+            baseHeight = 1080
         }
         self.width = width
         self.height = height
