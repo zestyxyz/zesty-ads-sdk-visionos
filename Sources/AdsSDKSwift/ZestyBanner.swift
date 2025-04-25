@@ -236,12 +236,12 @@ struct WebViewContentView: View {
             self.height = 250
             self.size = "billboard"
         case Formats.MobilePhoneInterstitial:
-            self.width = 640
-            self.height = 1136
+            self.width = 750
+            self.height = 1334
             self.size = "mobile-phone-interstitial"
         case Formats.Video:
-            self.width = 1920
-            self.height = 1080
+            self.width = 640
+            self.height = 360
             self.size = "video"
         }
     }

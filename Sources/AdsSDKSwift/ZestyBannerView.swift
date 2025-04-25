@@ -20,6 +20,7 @@ public struct ZestyBannerView: View {
     private let defaultCtaURL = "https://relay.zesty.xyz"
     private var uuidValid: Bool = false
     
+    @State private var dismissed: Bool = false
     @State private var imageURL: String = ""
     @State private var ctaURL: String = ""
     @State private var isLoading = false
@@ -38,11 +39,11 @@ public struct ZestyBannerView: View {
             baseWidth = 970
             baseHeight = 250
         case .MobilePhoneInterstitial:
-            baseWidth = 640
-            baseHeight = 1136
+            baseWidth = 750
+            baseHeight = 1334
         case .Video:
-            baseWidth = 1920
-            baseHeight = 1080
+            baseWidth = 640
+            baseHeight = 360
         }
         self.width = width
         self.height = height
@@ -66,32 +67,48 @@ public struct ZestyBannerView: View {
     
     public var body: some View {
         let scale = calculateScale()
-        VStack {
-            if !self.uuidValid || (!self.isLoading && self.campaignId != "None") {
-                Link(destination: URL(string: ctaURL)!) {
-                    KFImage.url(URL(string: imageURL))
-                        .aspectRatio(contentMode: .fit)
-                        .overlay(
-                            isLoading ? ProgressView() : nil
-                        )
-                }
-                .simultaneousGesture(TapGesture().onEnded {
-                    Task {
-                        try? await ZestyNetworkClient.shared.sendOnClickMetric(
-                            adUnitId: self.adUnitId,
-                            campaignId: self.campaignId
-                        )
+        VStack(alignment: .trailing) {
+            if !self.dismissed {
+                ZStack(alignment: .topTrailing) {
+                    if !self.uuidValid || (!self.isLoading && self.campaignId != "None") {
+                        Link(destination: URL(string: ctaURL)!) {
+                            KFImage.url(URL(string: imageURL))
+                                .aspectRatio(contentMode: .fit)
+                                .overlay(
+                                    isLoading ? ProgressView() : nil
+                                )
+                        }
+                        .simultaneousGesture(TapGesture().onEnded {
+                            Task {
+                                try? await ZestyNetworkClient.shared.sendOnClickMetric(
+                                    adUnitId: self.adUnitId,
+                                    campaignId: self.campaignId
+                                )
+                            }
+                        })
+                        .task {
+                            await loadAd()
+                        }
+                        .scaleEffect(scale)
+                        .frame(width: scale.width * baseWidth, height: scale.height * baseHeight)
+                    } else {
+                        WebViewContentView(format: self.format, adUnitId: self.adUnitId)
+                            .scaleEffect(scale)
+                            .frame(width: scale.width * baseWidth, height: scale.height * baseHeight)
                     }
-                })
-                .task {
-                    await loadAd()
+                    HStack {
+                        Button(action: { self.dismissed.toggle() }) {
+                            Text("X")
+                                .font(.system(size: 32))
+                                .padding()
+                        }
+                        .aspectRatio(1, contentMode: .fill)
+                        .scaleEffect(0.5)
+                    }
+                    .offset(x: 32, y: -32)
                 }
-            } else {
-                WebViewContentView(format: self.format, adUnitId: self.adUnitId)
             }
         }
-        .scaleEffect(scale)
-        .frame(width: scale.width * baseWidth, height: scale.height * baseHeight)
     }
     
     private func loadAd() async {
